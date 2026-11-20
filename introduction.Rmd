@@ -1,0 +1,82 @@
+---
+title: "Introduction to marshim"
+author: "JEMIMA NKAMA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to marshim}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This document presents the **marshim** package, developed as part of the
+introductory R course, under the supervision of Mr Yvan Ngneunmeu.
+
+## Solving a nonlinear equation
+
+A nonlinear equation such as $x^2 - 2 = 0$ or $\cos x = x$ does not always
+have a direct formula. We approach it by successive iterations.
+
+```{r methods}
+library(marshim)
+
+f  <- function(x) x^2 - 2
+df <- function(x) 2 * x
+
+bisection(f, 1, 2)
+fixed_point(cos, 1)
+newton(f, df, 1)
+secant(f, 1, 2)
+```
+
+Each function returns the root and the number of iterations. Note that
+Newton and the secant method converge much faster than bisection.
+
+## Application: water in a pipe
+
+The Colebrook-White equation gives the friction factor $f$ of a pipe:
+
+$$\frac{1}{\sqrt{f}} = -2 \log_{10}\left(\frac{\varepsilon}{3.7\,D} +
+\frac{2.51}{Re\,\sqrt{f}}\right)$$
+
+Since $f$ appears on both sides, the equation is nonlinear: we solve it
+numerically.
+
+```{r colebrook}
+# Steel (0.045 mm), diameter 10 cm, Re = 100000
+colebrook_friction(1e5, 0.000045 / 0.10)
+
+# Same result with another method
+colebrook_friction(1e5, 0.000045 / 0.10, method = "bisection")
+```
+
+## Head loss
+
+```{r headloss}
+# 100 m steel pipe, 10 cm diameter, water at 1 m/s
+head_loss(D = 0.10, L = 100, V = 1)
+```
+
+The head loss is about 1 meter of water over 100 meters of pipe.
+
+## Influence of the diameter
+
+```{r diameter, fig.width = 6, fig.height = 4}
+diam <- c(0.05, 0.075, 0.10, 0.125, 0.15, 0.20)
+Q <- pi / 4 * 0.10^2 * 1            # flow rate of the example (m3/s)
+hf <- numeric(length(diam))
+
+for (i in seq_along(diam)) {
+  V <- 4 * Q / (pi * diam[i]^2)
+  hf[i] <- head_loss(D = diam[i], L = 100, V = V)[["hf"]]
+}
+
+barplot(hf, names.arg = paste(diam * 100, "cm"), col = "darkcyan",
+        xlab = "Pipe diameter",
+        ylab = "Head loss over 100 m (m of water)")
+```
+
+Dividing the diameter by 2 multiplies the head loss by about 33.
